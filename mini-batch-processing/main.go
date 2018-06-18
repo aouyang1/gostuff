@@ -30,7 +30,6 @@ func evaluatorFunc(buffer []int, wg *sync.WaitGroup, beginc <-chan int, finish <
 			wg.Done()
 
 		case <-finish:
-			fmt.Println("Got here")
 			resc <- Result{data, nil}
 
 		}
@@ -84,11 +83,12 @@ func main() {
 	}
 
 	// Sender: Start sending data into slice of channels
-	numDataPoints := 21
-	for i := 0; i < numDataPoints; i++ {
+	numDataPoints := 20
+	for i := 0; i <= numDataPoints; i++ {
 		fmt.Println(buffer)
 		switch {
 		case i != 0 && i%len(buffer) == 0: // filled a buffer and start processing
+			fmt.Println("Processing full buffer")
 			evalwg.Add(len(evaluators))
 			for j := range evaluators {
 				begin[j] <- len(buffer)
@@ -96,11 +96,11 @@ func main() {
 			evalwg.Wait()
 			buffer[i%len(buffer)] = i
 
-		case i == numDataPoints-1: // if we're at the end then add that data and start processing
+		case i == numDataPoints: // if we're at the end so process remaining data in buffer
+			fmt.Println("Processing remaining buffer at end")
 			evalwg.Add(len(evaluators))
-			buffer[i%len(buffer)] = i
 			for j := range evaluators {
-				begin[j] <- i%len(buffer) + 1
+				begin[j] <- i % len(buffer)
 			}
 			evalwg.Wait()
 
