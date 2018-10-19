@@ -6,7 +6,8 @@ import (
 	"sync"
 )
 
-var bufferSize = 10
+var bufferSize = 100
+var overflowSize = 100
 
 type LogLine struct {
 	Key string
@@ -240,14 +241,16 @@ func main() {
 	a := []LogLine{}
 	b := []LogLine{}
 	offset := -10
-	for _, l := range expectedOut {
+	for i, l := range expectedOut {
 		a = append(a, LogLine{l.Key, l.Val + offset})
-		b = append(b, LogLine{l.Key, -offset})
+		if i%100 != 0 {
+			b = append(b, LogLine{l.Key, -offset})
+		}
 	}
 
 	s := state{
 		mainBuff: make([]LogLine, bufferSize),
-		secBuff:  NewCBuff(bufferSize * 1),
+		secBuff:  NewCBuff(bufferSize + overflowSize),
 	}
 
 	// Create slice of reader start signals
