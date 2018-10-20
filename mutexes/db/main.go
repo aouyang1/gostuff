@@ -85,11 +85,11 @@ func analyze(v Value) []string {
 	return tokens
 }
 
-func main() {
-	f, err := os.Open("alice-in-wonderland.txt") // os.OpenFile has more options if you need them
+func splitTextFile(filename string, numShards int) ([][]Value, error) {
+	f, err := os.Open(filename) // os.OpenFile has more options if you need them
 	defer f.Close()
 	if err != nil {
-		log.Fatal(err)
+		return [][]Value{}, err
 	}
 
 	rd := bufio.NewReader(f)
@@ -102,27 +102,35 @@ func main() {
 		}
 
 		if err != nil {
-			log.Fatal(err)
+			return [][]Value{}, err
 		}
 		lines = append(lines, line)
 	}
 
-	db := NewDB()
-
-	numProc := 4
-	linesPerProc := len(lines) / numProc
-	splitLines := make([][]Value, numProc)
+	splitLines := make([][]Value, numShards)
+	linesPerShard := len(lines) / numShards
 	var i, j int
-	for i = 0; i < numProc; i++ {
-		splitLines[i] = make([]Value, linesPerProc)
-		for j = 0; j < linesPerProc; j++ {
-			splitLines[i][j] = Value{ID: i*linesPerProc + j, Text: lines[i*linesPerProc+j]}
+	for i = 0; i < numShards; i++ {
+		splitLines[i] = make([]Value, linesPerShard)
+		for j = 0; j < linesPerShard; j++ {
+			splitLines[i][j] = Value{ID: i*linesPerShard + j, Text: lines[i*linesPerShard+j]}
 		}
 	}
 
+	return splitLines, nil
+}
+
+func main() {
+	numShards := 4
+	lines, err := splitTextFile("alice-in-wonderland.txt", numShards)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db := NewDB()
 	var wg sync.WaitGroup
-	wg.Add(numProc)
-	for i := 0; i < numProc; i++ {
+	wg.Add(numShards)
+	for i := 0; i < numShards; i++ {
 		go func(data []Value) {
 			for _, d := range data {
 				db.Lock()
@@ -130,7 +138,7 @@ func main() {
 				db.Unlock()
 			}
 			wg.Done()
-		}(splitLines[i])
+		}(lines[i])
 	}
 	wg.Wait()
 
