@@ -60,7 +60,7 @@ func TestDB(t *testing.T) {
 	var err error
 
 	for i, d := range data {
-		db.Insert(d)
+		db.Index(d)
 		res, err = db.Query(query[i].text)
 		if err != nil {
 			t.Errorf("Got an error while querying %s, %v", query[i].text, err)

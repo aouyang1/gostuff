@@ -26,14 +26,12 @@ func NewDB() DB {
 	return DB{index: make(map[string][]int), data: make(map[int]Value)}
 }
 
-func (d *DB) Insert(values ...Value) {
-	for _, v := range values {
-		tokens := analyze(v)
-		for _, t := range tokens {
-			d.index[t] = append(d.index[t], v.ID)
-		}
-		d.data[v.ID] = v
+func (d *DB) Index(v Value) {
+	tokens := analyze(v)
+	for _, t := range tokens {
+		d.index[t] = append(d.index[t], v.ID)
 	}
+	d.data[v.ID] = v
 }
 
 func (d DB) Query(term string) ([]Value, error) {
@@ -134,7 +132,7 @@ func main() {
 		go func(data []Value) {
 			for _, d := range data {
 				db.Lock()
-				db.Insert(d)
+				db.Index(d)
 				db.Unlock()
 			}
 			wg.Done()
@@ -142,10 +140,14 @@ func main() {
 	}
 	wg.Wait()
 
-	res, err := db.Query("Alice")
+	queryString := "Alice"
+	res, err := db.Query(queryString)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(res)
+	for _, r := range res {
+		fmt.Printf("Doc ID: %d with Text: %s", r.ID, r.Text)
+	}
+	fmt.Printf("Found %d documents with query string %s\n", len(res), queryString)
 
 }
