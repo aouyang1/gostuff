@@ -16,18 +16,6 @@ var data = []struct {
 	{Document{ID: 5, Text: "What what whaT"}, []string{"what"}},
 }
 
-func TestNewDB(t *testing.T) {
-	db := NewDB()
-
-	if db.index == nil {
-		t.Error("Expected an initialized index map")
-	}
-
-	if db.data == nil {
-		t.Error("Expected an initialized data map")
-	}
-}
-
 func TestAnalyze(t *testing.T) {
 	var result []string
 	for _, d := range data {
@@ -41,6 +29,18 @@ func TestAnalyze(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestNewDB(t *testing.T) {
+	db := NewDB()
+
+	if db.index == nil {
+		t.Error("Expected an initialized index map")
+	}
+
+	if db.data == nil {
+		t.Error("Expected an initialized data map")
 	}
 }
 
@@ -87,14 +87,18 @@ func TestGet(t *testing.T) {
 	db := NewDB()
 
 	var err error
+	var doc Document
 
 	for _, d := range data {
 		if err = db.Index(d.doc); err != nil {
 			t.Errorf("Failed to index doc ID %d, %v", d.doc.ID, err)
 		}
-		_, err = db.Get(d.doc.ID)
+		doc, err = db.Get(d.doc.ID)
 		if err != nil {
 			t.Errorf("Failed to get doc ID %d, %v", d.doc.ID, err)
+		}
+		if doc.Text != d.doc.Text {
+			t.Errorf("Retrieved document expected %s, but got %s", d.doc.Text, doc.Text)
 		}
 	}
 }
